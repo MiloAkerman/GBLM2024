@@ -11,6 +11,7 @@ public class Duck extends RobotPlayer {
 	}
 
 	public static void run() throws GameActionException {
+		// We haven't spawned yet
 		if (!rc.isSpawned()){
 			MapLocation[] spawnLocs = rc.getAllySpawnLocations();
 			// Pick a random spawn location to attempt spawning in.
@@ -18,8 +19,26 @@ public class Duck extends RobotPlayer {
 			if (rc.canSpawn(randomLoc)) {
 				rc.spawn(randomLoc);
 				MapLocation currLoc = rc.getLocation();
+
 				destination = new MapLocation(mapWidth - currLoc.x, mapHeight - currLoc.y);
+				spawn = currLoc;
+			} else {
+				return;
 			}
+		}
+
+		// Determine roles
+		RobotInfo[] enemyDucks = rc.senseNearbyRobots(-1, oppTeam);
+		RobotInfo[] allyDucks = rc.senseNearbyRobots(-1, myTeam);
+		FlagInfo[] flagsInfos = rc.senseNearbyFlags(-1, oppTeam);
+
+		// TODO: PARAMEDIC: Heal during combat, not specialized
+		// ATTACKER, not specialized
+		if(enemyDucks.length > 0) {
+			RobotInfo enemy = enemyDucks[rng.nextInt(enemyDucks.length)];
+			if(rc.canAttack(enemy.getLocation())) rc.attack(enemy.getLocation());
+			if(allyDucks.length < 2) tryMove(rc.getLocation().directionTo(enemy.getLocation()).opposite());
+			else tryMove(rc.getLocation().directionTo(enemy.getLocation()));
 		}
 
 		pathfindMove();
@@ -29,7 +48,7 @@ public class Duck extends RobotPlayer {
 	// TODO: Implement BFS for faster pathfinding
 	// TODO: Will keep moving after reaching destination
 	public static void pathfindMove() throws GameActionException {
-
+		if(!rc.isMovementReady()) return;
 		// We have somewhere to go
 		if(destination != null && rc.getLocation() != null) {
 			MapLocation currLoc = rc.getLocation();
@@ -49,5 +68,10 @@ public class Duck extends RobotPlayer {
 			}
 		}
 
+	}
+	public static void tryMove(Direction dir) throws GameActionException {
+		if(rc.canMove(dir)) rc.move(dir);
+		else if(rc.canMove(dir.rotateLeft())) rc.move(dir.rotateLeft());
+		else if(rc.canMove(dir.rotateRight())) rc.move(dir.rotateRight());
 	}
 }

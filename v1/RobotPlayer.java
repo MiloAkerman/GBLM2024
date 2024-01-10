@@ -13,8 +13,8 @@ public strictfp class RobotPlayer {
     static Team myTeam;
     static Team oppTeam;
     static int turnCount = 0;
-    static int spawnTurnCount = 0;
     static Random rng = new Random(9791);
+    static MapLocation spawn;
 
     static int mapWidth, mapHeight;
 
@@ -43,7 +43,6 @@ public strictfp class RobotPlayer {
         // While loop means duck is alive. Will run 1 iteration per turn
         while(true) {
             turnCount += 1;
-            spawnTurnCount += 1;
 
             try {
                 Duck.run();
