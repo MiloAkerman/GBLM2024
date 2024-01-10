@@ -6,10 +6,22 @@ import java.util.*;
 public class Duck extends RobotPlayer {
 	public static MapLocation destination;
 
-	public static void run() throws GameActionException {
-		MapLocation currLoc = rc.getLocation();
+	public static void setup() throws GameActionException {
+		// When robot is instantiated (not spawned)
+	}
 
-		destination = new MapLocation(mapWidth - currLoc.x, mapHeight - currLoc.y);
+	public static void run() throws GameActionException {
+		if (!rc.isSpawned()){
+			MapLocation[] spawnLocs = rc.getAllySpawnLocations();
+			// Pick a random spawn location to attempt spawning in.
+			MapLocation randomLoc = spawnLocs[rng.nextInt(spawnLocs.length)];
+			if (rc.canSpawn(randomLoc)) {
+				rc.spawn(randomLoc);
+				MapLocation currLoc = rc.getLocation();
+				destination = new MapLocation(mapWidth - currLoc.x, mapHeight - currLoc.y);
+			}
+		}
+
 		pathfindMove();
 	}
 
@@ -19,7 +31,7 @@ public class Duck extends RobotPlayer {
 	public static void pathfindMove() throws GameActionException {
 
 		// We have somewhere to go
-		if(destination != null) {
+		if(destination != null && rc.getLocation() != null) {
 			MapLocation currLoc = rc.getLocation();
 			int currDist = currLoc.distanceSquaredTo(destination);
 

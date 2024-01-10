@@ -29,6 +29,17 @@ public strictfp class RobotPlayer {
         mapHeight = rc.getMapHeight();
         turnCount = rc.getRoundNum();
 
+        // Duck setup
+        try {
+            Duck.setup();
+        } catch (GameActionException e) {
+            System.out.println("GameActionException");
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.out.println("Exception");
+            e.printStackTrace();
+        }
+
         // While loop means duck is alive. Will run 1 iteration per turn
         while(true) {
             turnCount += 1;
