@@ -1,0 +1,5 @@
+Pathfinding: BFS
+Comms:
+  []
+
+I think just a solid defense bot tbh
