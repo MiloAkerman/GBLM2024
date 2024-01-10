@@ -3,6 +3,22 @@ import battlecode.common.*;
 import static v1.Constants.*;
 import java.util.*;
 
+/**
+ * Code for ALL ducks
+ *
+ * Currently implemented:
+ * - Pick up flag and carry back to base
+ * - Attack if in range of enemies
+ *      - If backup, close in. Otherwise, back off.
+ *
+ *  Important todos
+ *  - SPLIT FILE INTO MANY CLASSES FOR BETTER ORGANIZATION
+ *  - Implement healing and building
+ *  - Improve attacker micro and micro
+ *  - Macro through comms
+ *
+ * @author Milo
+ */
 public class Duck extends RobotPlayer {
 	public static MapLocation destination;
 
@@ -33,22 +49,43 @@ public class Duck extends RobotPlayer {
 		FlagInfo[] flagsInfos = rc.senseNearbyFlags(-1, oppTeam);
 
 		// TODO: PARAMEDIC: Heal during combat, not specialized
-		// ATTACKER, not specialized
+
+		// Found a flag! First priority is to pick up and carry back.
+		if(flagsInfos.length > 0) {
+			for(FlagInfo flag : flagsInfos) {
+				if(rc.canPickupFlag(flag.getLocation())) {
+					rc.pickupFlag(flag.getLocation());
+					destination = spawn;
+				}
+			}
+		}
+
+		// Attack when in range of enemies
 		if(enemyDucks.length > 0) {
 			RobotInfo enemy = enemyDucks[rng.nextInt(enemyDucks.length)];
 			if(rc.canAttack(enemy.getLocation())) rc.attack(enemy.getLocation());
-			if(allyDucks.length < 2) tryMove(rc.getLocation().directionTo(enemy.getLocation()).opposite());
-			else tryMove(rc.getLocation().directionTo(enemy.getLocation()));
+
+			if(!rc.hasFlag()) {
+				// If not with allies, attack and back off
+				// TODO: try to back off only from their attack range, not all of vision range
+				if(allyDucks.length < 2) tryMove(rc.getLocation().directionTo(enemy.getLocation()).opposite());
+				// If with allies, attack and move towards
+				// TODO: make more macro-y. (Units should still move away when they're done attacking)
+				else tryMove(rc.getLocation().directionTo(enemy.getLocation()));
+			}
 		}
 
 		pathfindMove();
 	}
 
+	// --------------------------------------- PATHFINDING ----------------------------------------------------
+
 	// Greedy pathfinding
 	// TODO: Implement BFS for faster pathfinding
 	// TODO: Will keep moving after reaching destination
 	public static void pathfindMove() throws GameActionException {
-		if(!rc.isMovementReady()) return;
+		if(!rc.isMovementReady()) return; // Already moved
+
 		// We have somewhere to go
 		if(destination != null && rc.getLocation() != null) {
 			MapLocation currLoc = rc.getLocation();
