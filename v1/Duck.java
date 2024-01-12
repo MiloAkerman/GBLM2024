@@ -21,6 +21,8 @@ import java.util.*;
  */
 public class Duck extends RobotPlayer {
 	public static MapLocation destination;
+	public static MapLocation adjacentWall;
+	public static ArrayList<MapLocation> mLine = new ArrayList<>();
 
 	public static void setup() throws GameActionException {
 		// When robot is instantiated (not spawned)
@@ -36,7 +38,7 @@ public class Duck extends RobotPlayer {
 				rc.spawn(randomLoc);
 				MapLocation currLoc = rc.getLocation();
 
-				destination = new MapLocation(mapWidth - currLoc.x, mapHeight - currLoc.y);
+				setPathfinding(new MapLocation(mapWidth - currLoc.x, mapHeight - currLoc.y));
 				spawn = currLoc;
 			} else {
 				return;
@@ -55,7 +57,7 @@ public class Duck extends RobotPlayer {
 			for(FlagInfo flag : flagsInfos) {
 				if(rc.canPickupFlag(flag.getLocation())) {
 					rc.pickupFlag(flag.getLocation());
-					destination = spawn;
+					setPathfinding(spawn);
 				}
 			}
 		}
@@ -84,10 +86,11 @@ public class Duck extends RobotPlayer {
 	// TODO: Implement BFS for faster pathfinding
 	// TODO: Will keep moving after reaching destination
 	public static void pathfindMove() throws GameActionException {
-		if(!rc.isMovementReady()) return; // Already moved
+		if(!rc.isSpawned()) return; // Do we exist?
+		if(!rc.isMovementReady()) return; // Can we move?
 
 		// We have somewhere to go
-		if(destination != null && rc.getLocation() != null) {
+		if(destination != null) {
 			MapLocation currLoc = rc.getLocation();
 			int currDist = currLoc.distanceSquaredTo(destination);
 
@@ -105,6 +108,37 @@ public class Duck extends RobotPlayer {
 			}
 		}
 
+	}
+	public static void setPathfinding(MapLocation newDestination) {
+		MapLocation currLoc = rc.getLocation();
+		setPathfinding(newDestination);
+		adjacentWall = null;
+
+		// Modified Bresenham algorithm
+		int xDist = Math.abs(newDestination.x - currLoc.x);
+		int yDist = -Math.abs(newDestination.y - currLoc.y);
+		int xStep = (currLoc.x < newDestination.x ? +1 : -1);
+		int yStep = (currLoc.y < newDestination.y ? +1 : -1);
+		int error = xDist + yDist;
+
+		int x0 = currLoc.x;
+		int y0 = currLoc.y;
+		while(x0 != newDestination.x || y0 != newDestination.y) {
+			if (2*error - yDist > xDist - 2*error) {
+				error += yDist;
+				x0 += xStep;
+			} else {
+				error += xDist;
+				y0 += yStep;
+			}
+
+			mLine.add(new MapLocation(x0, y0));
+		}
+	}
+	public static void resetPathfinding() {
+		destination = null;
+		adjacentWall = null;
+		mLine = new ArrayList<>();
 	}
 	public static void tryMove(Direction dir) throws GameActionException {
 		if(rc.canMove(dir)) rc.move(dir);
