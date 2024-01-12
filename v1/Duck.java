@@ -5,12 +5,12 @@ import java.util.*;
 
 /**
  * Code for ALL ducks
- *
+
  * Currently implemented:
  * - Pick up flag and carry back to base
  * - Attack if in range of enemies
  *      - If backup, close in. Otherwise, back off.
- *
+
  *  Important todos
  *  - SPLIT FILE INTO MANY CLASSES FOR BETTER ORGANIZATION
  *  - Implement healing and building
@@ -22,6 +22,7 @@ import java.util.*;
 public class Duck extends RobotPlayer {
 	public static MapLocation destination;
 	public static MapLocation adjacentWall;
+	public static int bugNavTurn = -1;
 	public static ArrayList<MapLocation> mLine = new ArrayList<>();
 
 	public static void setup() throws GameActionException {
@@ -53,16 +54,14 @@ public class Duck extends RobotPlayer {
 		// TODO: PARAMEDIC: Heal during combat, not specialized
 
 		// Found a flag! First priority is to pick up and carry back.
-		if(flagsInfos.length > 0) {
-			for(FlagInfo flag : flagsInfos) {
-				if(rc.canPickupFlag(flag.getLocation())) {
-					rc.pickupFlag(flag.getLocation());
-					setPathfinding(spawn);
-				}
-			}
-		}
+        for (FlagInfo flag : flagsInfos) {
+            if (rc.canPickupFlag(flag.getLocation())) {
+                rc.pickupFlag(flag.getLocation());
+                setPathfinding(spawn);
+            }
+        }
 
-		// Attack when in range of enemies
+        // Attack when in range of enemies
 		if(enemyDucks.length > 0) {
 			RobotInfo enemy = enemyDucks[rng.nextInt(enemyDucks.length)];
 			if(rc.canAttack(enemy.getLocation())) rc.attack(enemy.getLocation());
@@ -77,7 +76,7 @@ public class Duck extends RobotPlayer {
 			}
 		}
 
-		pathfindMove();
+		stepPathfinding();
 	}
 
 	// --------------------------------------- PATHFINDING ----------------------------------------------------
@@ -85,7 +84,7 @@ public class Duck extends RobotPlayer {
 	// Greedy pathfinding
 	// TODO: Implement BFS for faster pathfinding
 	// TODO: Will keep moving after reaching destination
-	public static void pathfindMove() throws GameActionException {
+	public static void stepPathfinding() throws GameActionException {
 		if(!rc.isSpawned()) return; // Do we exist?
 		if(!rc.isMovementReady()) return; // Can we move?
 
@@ -103,7 +102,35 @@ public class Duck extends RobotPlayer {
 				}
 			}
 
-			if(bestMove != null) {
+			if(bestMove == null) return; // should never happen
+			MapLocation newLoc = currLoc.add(bestMove);
+
+			if(!rc.sensePassability(newLoc)) {
+				// Cannot move, begin bugnav
+				bugNavTurn = 1;
+				Direction newBestMove = rightmostMovableTile(bestMove);
+				if(newBestMove != null) {
+					adjacentWall = currLoc.add(newBestMove.rotateLeft());
+					rc.move(newBestMove);
+				}
+			} else if (bugNavTurn != -1) {
+				// Can move, but bugnaving
+				bugNavTurn++;
+
+				if(bugNavTurn > 2 && isOnMLine()) {
+					// Bugnav can end
+					adjacentWall = null;
+					rc.move(bestMove);
+				} else {
+					// Continue bugnav
+					Direction newBestMove = rightmostMovableTile(currLoc.directionTo(adjacentWall));
+					if(newBestMove != null) {
+						adjacentWall = currLoc.add(newBestMove.rotateLeft());
+						rc.move(newBestMove);
+					}
+				}
+			} else {
+				// Can move, no bugnav. Just move
 				rc.move(bestMove);
 			}
 		}
@@ -111,7 +138,7 @@ public class Duck extends RobotPlayer {
 	}
 	public static void setPathfinding(MapLocation newDestination) {
 		MapLocation currLoc = rc.getLocation();
-		setPathfinding(newDestination);
+		destination = newDestination;
 		adjacentWall = null;
 
 		// Modified Bresenham algorithm
@@ -144,5 +171,21 @@ public class Duck extends RobotPlayer {
 		if(rc.canMove(dir)) rc.move(dir);
 		else if(rc.canMove(dir.rotateLeft())) rc.move(dir.rotateLeft());
 		else if(rc.canMove(dir.rotateRight())) rc.move(dir.rotateRight());
+	}
+
+	public static Direction rightmostMovableTile(Direction initDir) throws GameActionException {
+		Direction dir = initDir;
+		for(int i = 0; i < 6; i++) {
+			dir = dir.rotateRight();
+			if(rc.canMove(dir)) return dir;
+		}
+		return null;
+	}
+	public static boolean isOnMLine() throws GameActionException {
+		MapLocation currLoc = rc.getLocation();
+		for(MapLocation loc : mLine) {
+			if(currLoc.equals(loc)) return true;
+		}
+		return false;
 	}
 }
