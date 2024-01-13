@@ -40,7 +40,7 @@ public class Duck extends RobotPlayer {
 			for (FlagInfo flag : flagsInfo) {
 				if (rc.canPickupFlag(flag.getLocation())) {
 					rc.pickupFlag(flag.getLocation());
-					Pathfinding.setDestination(spawn);
+					Pathfinding.setDestination(rc, spawn);
 				}
 			}
 
@@ -86,7 +86,7 @@ public class Duck extends RobotPlayer {
 		if (rc.canSpawn(randomLoc)) {
 			rc.spawn(randomLoc);
 			spawn = rc.getLocation();
-			Pathfinding.setDestination(new MapLocation(mapWidth - spawn.x, mapHeight - spawn.y));
+			Pathfinding.setDestination(rc, new MapLocation(mapWidth - spawn.x, mapHeight - spawn.y));
 
 			return true;
 		} else return false;
