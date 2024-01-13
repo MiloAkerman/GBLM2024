@@ -81,7 +81,7 @@ public class Duck extends RobotPlayer {
 	public static boolean trySpawn() throws GameActionException {
 		MapLocation[] spawnLocations = rc.getAllySpawnLocations();
 
-		// TODO: No random spawning
+		// TODO: Deterministic spawning
 		MapLocation randomLoc = spawnLocations[rng.nextInt(spawnLocations.length)];
 		if (rc.canSpawn(randomLoc)) {
 			rc.spawn(randomLoc);
