@@ -3,6 +3,7 @@ import battlecode.common.*;
 import static v1.Constants.*;
 import java.util.*;
 
+<<<<<<< HEAD
 /**
  * Code for ALL ducks
 
@@ -19,6 +20,8 @@ import java.util.*;
  *
  * @author Milo
  */
+=======
+>>>>>>> parent of d711f3b (Flag-catching + docs)
 public class Duck extends RobotPlayer {
 	public static MapLocation destination;
 	public static MapLocation adjacentWall;
@@ -52,6 +55,7 @@ public class Duck extends RobotPlayer {
 		FlagInfo[] flagsInfos = rc.senseNearbyFlags(-1, oppTeam);
 
 		// TODO: PARAMEDIC: Heal during combat, not specialized
+<<<<<<< HEAD
 
 		// Found a flag! First priority is to pick up and carry back.
         for (FlagInfo flag : flagsInfos) {
@@ -62,91 +66,103 @@ public class Duck extends RobotPlayer {
         }
 
         // Attack when in range of enemies
+=======
+		// ATTACKER, not specialized
+>>>>>>> parent of d711f3b (Flag-catching + docs)
 		if(enemyDucks.length > 0) {
 			RobotInfo enemy = enemyDucks[rng.nextInt(enemyDucks.length)];
 			if(rc.canAttack(enemy.getLocation())) rc.attack(enemy.getLocation());
-
-			if(!rc.hasFlag()) {
-				// If not with allies, attack and back off
-				// TODO: try to back off only from their attack range, not all of vision range
-				if(allyDucks.length < 2) tryMove(rc.getLocation().directionTo(enemy.getLocation()).opposite());
-				// If with allies, attack and move towards
-				// TODO: make more macro-y. (Units should still move away when they're done attacking)
-				else tryMove(rc.getLocation().directionTo(enemy.getLocation()));
-			}
+			if(allyDucks.length < 2) tryMove(rc.getLocation().directionTo(enemy.getLocation()).opposite());
+			else tryMove(rc.getLocation().directionTo(enemy.getLocation()));
 		}
 
 		stepPathfinding();
 	}
 
-	// --------------------------------------- PATHFINDING ----------------------------------------------------
-
 	// Greedy pathfinding
 	// TODO: Implement BFS for faster pathfinding
 	// TODO: Will keep moving after reaching destination
+<<<<<<< HEAD
 	public static void stepPathfinding() throws GameActionException {
 		if(!rc.isSpawned()) return; // Do we exist?
 		if(!rc.isMovementReady()) return; // Can we move?
 
+=======
+	public static void pathfindMove() throws GameActionException {
+		if(!rc.isMovementReady()) return;
+>>>>>>> parent of d711f3b (Flag-catching + docs)
 		// We have somewhere to go
 		if(destination != null) {
 			MapLocation currLoc = rc.getLocation();
-			int currDist = currLoc.distanceSquaredTo(destination);
-
-			Direction bestMove = null;
-			for (Direction direction : DIRECTIONS) {
-				MapLocation newLoc = currLoc.add(direction);
-				int newDist = newLoc.distanceSquaredTo(destination);
-				if ((newDist < currDist || bestMove == null)) {
-					bestMove = direction;
-				}
-			}
+			Direction bestMove = getBestDirection(false);
 
 			if(bestMove == null) return; // should never happen
 			MapLocation newLoc = currLoc.add(bestMove);
 
-			if(rc.canSenseLocation(newLoc) && (rc.senseMapInfo(newLoc).isWall() || rc.senseMapInfo(newLoc).isWater())) {
+			// Not currently bugnaving, and chosen mapLoc is wall or water
+			if(bugNavTurn == -1 && rc.canSenseLocation(newLoc) && (rc.senseMapInfo(newLoc).isWall() || rc.senseMapInfo(newLoc).isWater())) {
 				// Cannot move, begin bugnav
 				bugNavTurn = 1;
-				rc.setIndicatorString("Beginning bugnav...");
 				setPathfinding(destination);
 				Direction newBestMove = rightmostMovableTile(bestMove);
 				if(newBestMove != null) {
 					adjacentWall = currLoc.add(newBestMove.rotateLeft());
-					rc.move(newBestMove);
+					if(rc.canMove(bestMove)) {
+						rc.move(newBestMove);
+						rc.setIndicatorString("Beginning bugnav... Moving to best move (" + newBestMove + ")");
+					}
 				}
+				rc.setIndicatorString("Beginning bugnav... Cannot move.");
+
+			// Currently bugnaving
 			} else if (bugNavTurn != -1) {
-				// Can move, but bugnaving
 				bugNavTurn++;
 
-				if(bugNavTurn > 2 && isOnMLine()) {
-					// Bugnav can end
+				// End bugnaving if turn > 2 and on ML line OR no adjacent wall
+				if(bugNavTurn > 2 && (isOnMLine() || adjacentWall == null)) {
 					adjacentWall = null;
 					bugNavTurn = -1;
-					if(rc.canMove(bestMove)) rc.move(bestMove);
-					rc.setIndicatorString("Bugnav over!");
+
+					bestMove = getBestDirection(true);
+					if(bestMove != null && rc.canMove(bestMove)) {
+						rc.move(bestMove);
+						rc.setIndicatorString("Bugnav over! Moving to best move (" + bestMove + ") instead...");
+					} else {
+						rc.setIndicatorString("Bugnav over! Cannot move");
+					}
+
+				// Bugnav cannot end. Keep going!
 				} else {
 					// Continue bugnav
-					rc.setIndicatorString("Continuing bugnav...");
+					if(adjacentWall == null) {
+						rc.setIndicatorString("No wall to bugnav. Shouldn't happen.");
+						return;
+					}
 
-					if(adjacentWall == null) return; // yikes
 					Direction newBestMove = rightmostMovableTile(currLoc.directionTo(adjacentWall));
 					if(newBestMove != null) {
 						adjacentWall = currLoc.add(newBestMove.rotateLeft());
-						rc.move(newBestMove);
+						if(rc.canMove(newBestMove)) {
+							bestMove = getBestDirection(true);
+							if(bestMove != null) {
+								rc.move(bestMove);
+								rc.setIndicatorString("Bugnav continues!! Moving to best move (" + bestMove + ") instead...");
+							} else {
+								rc.setIndicatorString("Bugnav continues! But cannot move...?");
+							}
+						}
 					}
 				}
+
+			// Can move, no bugnav. Just move
 			} else {
-				// Can move, no bugnav. Just move
-				rc.setIndicatorString("No bugnav");
-				bestMove = null;
-				for (Direction direction : DIRECTIONS) {
-					int newDist = newLoc.distanceSquaredTo(destination);
-					if ((newDist < currDist || bestMove == null) && rc.canMove(direction)) {
-						bestMove = direction;
-					}
+				bestMove = getBestDirection(true);
+				if(bestMove != null) {
+					rc.move(bestMove);
+					rc.setIndicatorString("No bugnav. Moving to best move (" + bestMove + ") instead...");
+				} else {
+					rc.setIndicatorString("No bugnav, but nowhere to move...?");
 				}
-				if(bestMove != null) rc.move(bestMove);
 			}
 		}
 
@@ -189,11 +205,32 @@ public class Duck extends RobotPlayer {
 		else if(rc.canMove(dir.rotateRight())) rc.move(dir.rotateRight());
 	}
 
+	public static Direction getBestDirection(boolean shouldBeAbleToMove) throws GameActionException {
+		MapLocation currLoc = rc.getLocation();
+		int bestDist = currLoc.distanceSquaredTo(destination);
+		Direction bestMove = null;
+
+		for (Direction direction : DIRECTIONS) {
+			MapLocation newLoc = currLoc.add(direction);
+			int newDist = newLoc.distanceSquaredTo(destination);
+			if ((newDist < bestDist || bestMove == null)) {
+				if(shouldBeAbleToMove && !rc.canMove(direction)) continue;
+				bestMove = direction;
+				bestDist = newDist;
+			}
+		}
+
+		return bestMove;
+	}
 	public static Direction rightmostMovableTile(Direction initDir) throws GameActionException {
+		MapLocation currLoc = rc.getLocation();
 		Direction dir = initDir;
+
 		for(int i = 0; i < 6; i++) {
 			dir = dir.rotateRight();
-			if(rc.canMove(dir)) return dir;
+
+			MapLocation loc = currLoc.add(dir);
+			if(rc.canMove(dir) || (isDam(loc))) return dir;
 		}
 		return null;
 	}
@@ -203,5 +240,11 @@ public class Duck extends RobotPlayer {
 			if(currLoc.equals(loc)) return true;
 		}
 		return false;
+	}
+	public static boolean isDam(MapLocation loc) throws GameActionException {
+		if(rc.canSenseLocation(loc)) {
+			MapInfo mInfo = rc.senseMapInfo(loc);
+            return !rc.canMove(rc.getLocation().directionTo(loc)) && (!mInfo.isWall() && !mInfo.isWater());
+		} else return false;
 	}
 }
