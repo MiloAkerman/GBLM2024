@@ -5,16 +5,16 @@ import java.util.*;
 
 /**
  * Code for ALL ducks
- *
+
  * Currently implemented:
  * - Pick up flag and carry back to base
+ * - Heal if no enemies
  * - Attack if in range of enemies
  *      - If backup, close in. Otherwise, back off.
- *
+
  *  Important todos
- *  - SPLIT FILE INTO MANY CLASSES FOR BETTER ORGANIZATION
- *  - Implement healing and building
- *  - Improve attacker micro and micro
+ *  - Implement building
+ *  - Improve micro and micro
  *  - Macro through comms
  *
  * @author Milo
@@ -26,89 +26,69 @@ public class Duck extends RobotPlayer {
 		// When robot is instantiated (not spawned)
 	}
 
+	// ---------------------------------------------- MAIN LOOP  ------------------------------------------------
 	public static void run() throws GameActionException {
-		// We haven't spawned yet
-		if (!rc.isSpawned()){
-			MapLocation[] spawnLocs = rc.getAllySpawnLocations();
-			// Pick a random spawn location to attempt spawning in.
-			MapLocation randomLoc = spawnLocs[rng.nextInt(spawnLocs.length)];
-			if (rc.canSpawn(randomLoc)) {
-				rc.spawn(randomLoc);
-				MapLocation currLoc = rc.getLocation();
+		// We haven't spawned yet, attempt to spawn
+		if (!rc.isSpawned()){ if(!trySpawn()) return; }
 
-				destination = new MapLocation(mapWidth - currLoc.x, mapHeight - currLoc.y);
-				spawn = currLoc;
-			} else {
-				return;
-			}
-		}
+		Roles: {
+			// Determine roles
+			RobotInfo[] enemyDucks = rc.senseNearbyRobots(-1, oppTeam);
+			RobotInfo[] allyDucks = rc.senseNearbyRobots(-1, myTeam);
+			FlagInfo[] flagsInfo = rc.senseNearbyFlags(-1, oppTeam);
 
-		// Determine roles
-		RobotInfo[] enemyDucks = rc.senseNearbyRobots(-1, oppTeam);
-		RobotInfo[] allyDucks = rc.senseNearbyRobots(-1, myTeam);
-		FlagInfo[] flagsInfos = rc.senseNearbyFlags(-1, oppTeam);
-
-		// TODO: PARAMEDIC: Heal during combat, not specialized
-
-		// Found a flag! First priority is to pick up and carry back.
-		if(flagsInfos.length > 0) {
-			for(FlagInfo flag : flagsInfos) {
-				if(rc.canPickupFlag(flag.getLocation())) {
+			// Found a flag! First priority is to pick up and carry back
+			for (FlagInfo flag : flagsInfo) {
+				if (rc.canPickupFlag(flag.getLocation())) {
 					rc.pickupFlag(flag.getLocation());
 					destination = spawn;
 				}
 			}
-		}
 
-		// Attack when in range of enemies
-		if(enemyDucks.length > 0) {
-			RobotInfo enemy = enemyDucks[rng.nextInt(enemyDucks.length)];
-			if(rc.canAttack(enemy.getLocation())) rc.attack(enemy.getLocation());
-
-			if(!rc.hasFlag()) {
-				// If not with allies, attack and back off
-				// TODO: try to back off only from their attack range, not all of vision range
-				if(allyDucks.length < 2) tryMove(rc.getLocation().directionTo(enemy.getLocation()).opposite());
-				// If with allies, attack and move towards
-				// TODO: make more macro-y. (Units should still move away when they're done attacking)
-				else tryMove(rc.getLocation().directionTo(enemy.getLocation()));
-			}
-		}
-
-		pathfindMove();
-	}
-
-	// --------------------------------------- PATHFINDING ----------------------------------------------------
-
-	// Greedy pathfinding
-	// TODO: Implement BFS for faster pathfinding
-	// TODO: Will keep moving after reaching destination
-	public static void pathfindMove() throws GameActionException {
-		if(!rc.isMovementReady()) return; // Already moved
-
-		// We have somewhere to go
-		if(destination != null && rc.getLocation() != null) {
-			MapLocation currLoc = rc.getLocation();
-			int currDist = currLoc.distanceSquaredTo(destination);
-
-			Direction bestMove = null;
-			for (Direction direction : DIRECTIONS) {
-				MapLocation newLoc = currLoc.add(direction);
-				int newDist = newLoc.distanceSquaredTo(destination);
-				if ((newDist < currDist || bestMove == null) && rc.canMove(direction)) {
-					bestMove = direction;
+			// Heal when beside allies and no enemies
+			if (allyDucks.length > 0 && enemyDucks.length == 0) {
+				RobotInfo leastHealthDuck = allyDucks[0];
+				for (RobotInfo allyDuck : allyDucks) {
+					if ((allyDuck.health < 700) && (allyDuck.health < leastHealthDuck.health)) {
+						leastHealthDuck = allyDuck;
+					}
+				}
+				if (rc.canHeal(leastHealthDuck.getLocation())) {
+					rc.heal(leastHealthDuck.getLocation());
 				}
 			}
 
-			if(bestMove != null) {
-				rc.move(bestMove);
+			// Attack when in range of enemies
+			if(enemyDucks.length > 0) {
+				RobotInfo enemy = enemyDucks[rng.nextInt(enemyDucks.length)];
+				if(rc.canAttack(enemy.getLocation())) rc.attack(enemy.getLocation());
+
+				if(!rc.hasFlag()) {
+					// If not with allies, attack and back off
+					// TODO: try to back off only from their attack range, not all of vision range
+					if(allyDucks.length < 2) Pathfinding.moveOnce(rc, rc.getLocation().directionTo(enemy.getLocation()).opposite());
+
+					// If with allies, attack and move towards
+					// TODO: make more macro-y. (Units should still move away when they're done attacking)
+					else Pathfinding.moveOnce(rc, rc.getLocation().directionTo(enemy.getLocation()));
+				}
 			}
 		}
 
+		Pathfinding.step(rc);
 	}
-	public static void tryMove(Direction dir) throws GameActionException {
-		if(rc.canMove(dir)) rc.move(dir);
-		else if(rc.canMove(dir.rotateLeft())) rc.move(dir.rotateLeft());
-		else if(rc.canMove(dir.rotateRight())) rc.move(dir.rotateRight());
+
+	// ---------------------------------------------- HELPERS  ------------------------------------------------
+	public static boolean trySpawn() throws GameActionException {
+		MapLocation[] spawnLocations = rc.getAllySpawnLocations();
+
+		// TODO: No random spawning
+		MapLocation randomLoc = spawnLocations[rng.nextInt(spawnLocations.length)];
+		if (rc.canSpawn(randomLoc)) {
+			rc.spawn(randomLoc);
+			spawn = rc.getLocation();
+
+			return true;
+		} else return false;
 	}
 }
