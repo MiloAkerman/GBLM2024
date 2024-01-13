@@ -97,7 +97,7 @@ public class Duck extends RobotPlayer {
 			for (Direction direction : DIRECTIONS) {
 				MapLocation newLoc = currLoc.add(direction);
 				int newDist = newLoc.distanceSquaredTo(destination);
-				if ((newDist < currDist || bestMove == null) && rc.canMove(direction)) {
+				if ((newDist < currDist || bestMove == null)) {
 					bestMove = direction;
 				}
 			}
@@ -105,9 +105,11 @@ public class Duck extends RobotPlayer {
 			if(bestMove == null) return; // should never happen
 			MapLocation newLoc = currLoc.add(bestMove);
 
-			if(!rc.sensePassability(newLoc)) {
+			if(rc.canSenseLocation(newLoc) && (rc.senseMapInfo(newLoc).isWall() || rc.senseMapInfo(newLoc).isWater())) {
 				// Cannot move, begin bugnav
 				bugNavTurn = 1;
+				rc.setIndicatorString("Beginning bugnav...");
+				setPathfinding(destination);
 				Direction newBestMove = rightmostMovableTile(bestMove);
 				if(newBestMove != null) {
 					adjacentWall = currLoc.add(newBestMove.rotateLeft());
@@ -120,9 +122,14 @@ public class Duck extends RobotPlayer {
 				if(bugNavTurn > 2 && isOnMLine()) {
 					// Bugnav can end
 					adjacentWall = null;
-					rc.move(bestMove);
+					bugNavTurn = -1;
+					if(rc.canMove(bestMove)) rc.move(bestMove);
+					rc.setIndicatorString("Bugnav over!");
 				} else {
 					// Continue bugnav
+					rc.setIndicatorString("Continuing bugnav...");
+
+					if(adjacentWall == null) return; // yikes
 					Direction newBestMove = rightmostMovableTile(currLoc.directionTo(adjacentWall));
 					if(newBestMove != null) {
 						adjacentWall = currLoc.add(newBestMove.rotateLeft());
@@ -131,7 +138,15 @@ public class Duck extends RobotPlayer {
 				}
 			} else {
 				// Can move, no bugnav. Just move
-				rc.move(bestMove);
+				rc.setIndicatorString("No bugnav");
+				bestMove = null;
+				for (Direction direction : DIRECTIONS) {
+					int newDist = newLoc.distanceSquaredTo(destination);
+					if ((newDist < currDist || bestMove == null) && rc.canMove(direction)) {
+						bestMove = direction;
+					}
+				}
+				if(bestMove != null) rc.move(bestMove);
 			}
 		}
 
@@ -139,6 +154,7 @@ public class Duck extends RobotPlayer {
 	public static void setPathfinding(MapLocation newDestination) {
 		MapLocation currLoc = rc.getLocation();
 		destination = newDestination;
+		rc.setIndicatorLine(currLoc, newDestination, 255, 20, 20);
 		adjacentWall = null;
 
 		// Modified Bresenham algorithm
