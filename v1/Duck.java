@@ -90,5 +90,5 @@ public class Duck extends RobotPlayer {
 
 			return true;
 		} else return false;
-	}
+  }
 }
