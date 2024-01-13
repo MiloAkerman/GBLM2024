@@ -5,7 +5,9 @@ import java.util.*;
 
 /**
  * Code for ALL ducks
-
+ * @author Milo
+ */
+/*
  * Currently implemented:
  * - Pick up flag and carry back to base
  * - Heal if no enemies
@@ -16,8 +18,6 @@ import java.util.*;
  *  - Implement building
  *  - Improve micro and micro
  *  - Macro through comms
- *
- * @author Milo
  */
 public class Duck extends RobotPlayer {
 
@@ -86,6 +86,7 @@ public class Duck extends RobotPlayer {
 		if (rc.canSpawn(randomLoc)) {
 			rc.spawn(randomLoc);
 			spawn = rc.getLocation();
+			Pathfinding.setDestination(new MapLocation(mapWidth - spawn.x, mapHeight - spawn.y));
 
 			return true;
 		} else return false;
