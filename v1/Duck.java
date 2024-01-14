@@ -95,13 +95,3 @@ public class Duck extends RobotPlayer {
 		} else return false;
   }
 }
-	//---------------------------------------BUILDERS------------------------------------------------------------
-//Build traps if enemies aren't close
-//TODO: Defend our flags with explosive traps
-	public static void checkFriendlyFlag(FlagInfo flag) {
-		if (flag.getTeam().equals(myTeam())) return True;
-		build (TrapType.EXPLOSIVE, isAdjacentTo(FlagInfo));
-	}
-	public static void checkFriendlyFlagBearer(RobotInfo duck) {
-		if (duck.hasFlag() && duck.getTeam().equals(myTeam())) return True;
-	}
