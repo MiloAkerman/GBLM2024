@@ -2,6 +2,7 @@ package v1;
 import battlecode.common.*;
 
 public class Constants {
+	public static final PassabilityType DEFAULT_PASSABILITY = PassabilityType.DAMSOKAY;
 	public static final Direction[] DIRECTIONS = { Direction.NORTH, Direction.NORTHEAST, Direction.EAST,
 			Direction.SOUTHEAST, Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST,
 			Direction.NORTHWEST };

@@ -20,13 +20,17 @@ import java.util.*;
  *  - Macro through comms
  */
 public class Duck extends RobotPlayer {
+	static BugPathfinding pathfinding;
 
 	public static void setup() throws GameActionException {
-		// When robot is instantiated (not spawned)
+
 	}
 
 	// ---------------------------------------------- MAIN LOOP  ------------------------------------------------
 	public static void run() throws GameActionException {
+		// No pathfinding, create one with default passability
+		if (pathfinding == null) pathfinding = new BugPathfinding(rc, DEFAULT_PASSABILITY);
+
 		// We haven't spawned yet, attempt to spawn
 		if (!rc.isSpawned()){ if(!trySpawn()) return; }
 
@@ -40,7 +44,7 @@ public class Duck extends RobotPlayer {
 			for (FlagInfo flag : flagsInfo) {
 				if (rc.canPickupFlag(flag.getLocation())) {
 					rc.pickupFlag(flag.getLocation());
-					Pathfinding.setDestination(rc, spawn);
+					pathfinding.setDestination(spawn);
 				}
 			}
 
@@ -65,16 +69,16 @@ public class Duck extends RobotPlayer {
 				if(!rc.hasFlag()) {
 					// If not with allies, attack and back off
 					// TODO: try to back off only from their attack range, not all of vision range
-					if(allyDucks.length < 2) Pathfinding.moveOnce(rc, rc.getLocation().directionTo(enemy.getLocation()).opposite());
+					if(allyDucks.length < 2) pathfinding.moveOnce(rc.getLocation().directionTo(enemy.getLocation()).opposite());
 
 					// If with allies, attack and move towards
 					// TODO: make more macro-y. (Units should still move away when they're done attacking)
-					else Pathfinding.moveOnce(rc, rc.getLocation().directionTo(enemy.getLocation()));
+					else pathfinding.moveOnce(rc.getLocation().directionTo(enemy.getLocation()));
 				}
 			}
 		}
 
-		Pathfinding.step(rc);
+		pathfinding.step();
 	}
 
 	// ---------------------------------------------- HELPERS  ------------------------------------------------
@@ -86,7 +90,7 @@ public class Duck extends RobotPlayer {
 		if (rc.canSpawn(randomLoc)) {
 			rc.spawn(randomLoc);
 			spawn = rc.getLocation();
-			Pathfinding.setDestination(rc, new MapLocation(mapWidth - spawn.x, mapHeight - spawn.y));
+			pathfinding.setDestination(new MapLocation(mapWidth - spawn.x, mapHeight - spawn.y));
 
 			return true;
 		} else return false;
