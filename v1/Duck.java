@@ -43,12 +43,11 @@ public class Duck extends RobotPlayer {
 					Pathfinding.setDestination(spawn);
 				}
 			}
-
 			// Heal when beside allies and no enemies
 			if (allyDucks.length > 0 && enemyDucks.length == 0) {
 				RobotInfo leastHealthDuck = allyDucks[0];
 				for (RobotInfo allyDuck : allyDucks) {
-					if ((allyDuck.health < 700) && (allyDuck.health < leastHealthDuck.health)) {
+					if ((allyDuck.health < 350) && (allyDuck.health < leastHealthDuck.health)) {
 						leastHealthDuck = allyDuck;
 					}
 				}
@@ -92,3 +91,13 @@ public class Duck extends RobotPlayer {
 		} else return false;
   }
 }
+	//---------------------------------------BUILDERS------------------------------------------------------------
+//Build traps if enemies aren't close
+//TODO: Defend our flags with explosive traps
+	public static void checkFriendlyFlag(FlagInfo flag) {
+		if (flag.getTeam().equals(myTeam())) return True;
+		build (TrapType.EXPLOSIVE, isAdjacentTo(FlagInfo));
+	}
+	public static void checkFriendlyFlagBearer(RobotInfo duck) {
+		if (duck.hasFlag() && duck.getTeam().equals(myTeam())) return True;
+	}
