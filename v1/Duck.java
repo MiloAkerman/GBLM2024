@@ -51,6 +51,8 @@ public class Duck extends RobotPlayer {
 			// Enemies present, takes priority over anything else
 
 
+			MapLocation bestTrap = spawnTrap(TrapType.EXPLOSIVE);
+			if(bestTrap != null) rc.build(TrapType.EXPLOSIVE, bestTrap);
 
 			Attack: {
 				// TODO: no random
@@ -81,6 +83,9 @@ public class Duck extends RobotPlayer {
 
 			// ...but enemies in vision range
 			if(enemyDucksVision.length > 0 && turnCount >= 200 && !rc.hasFlag()) {
+
+				MapLocation bestTrap = spawnTrap(TrapType.EXPLOSIVE);
+				if(bestTrap != null) rc.build(TrapType.EXPLOSIVE, bestTrap);
 
 				RobotInfo enemy = enemyDucksVision[rng.nextInt(enemyDucksVision.length)];
 				if(allyDucksHeal.length > 0) {
@@ -163,17 +168,20 @@ public class Duck extends RobotPlayer {
 		}
 	}
 
-//	public static MapLocation bestTrap() throws GameActionException {
-//		MapInfo[] mapInfos = rc.senseNearbyMapInfos(-1);
-//		int traps = 0;
-//		MapLocation spawnTiles;
-//
-//		for(MapInfo mapInfo : mapInfos) {
-//			if(mapInfo.getTrapType() != TrapType.NONE) {
-//				traps++;
-//			} else {
-//
-//			}
-//		}
-//	}
+	public static MapLocation spawnTrap(TrapType type) throws GameActionException {
+		int traps = 0;
+		ArrayList<MapLocation> placeableLocations = new ArrayList<>();
+
+		for(MapLocation spawn : rc.getAllySpawnLocations()) {
+			if(rc.canSenseLocation(spawn) && rc.senseMapInfo(spawn).getTrapType() != TrapType.NONE) {
+				traps++;
+				if(rc.canBuild(type, spawn)) placeableLocations.add(spawn);
+			}
+		}
+		if(traps <= MAX_SPAWN_TRAPS && !placeableLocations.isEmpty()) {
+			return placeableLocations.get(0);
+		} else {
+			return null;
+		}
+	}
 }
