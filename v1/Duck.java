@@ -35,64 +35,96 @@ public class Duck extends RobotPlayer {
 		if (!rc.isSpawned()){ if(!trySpawn()) return; }
 
 		MapLocation currLoc = rc.getLocation();
+		RobotInfo[] enemyDucksVision = rc.senseNearbyRobots(-1, oppTeam);
+		RobotInfo[] enemyDucksAttack = rc.senseNearbyRobots(GameConstants.ATTACK_RADIUS_SQUARED, oppTeam);
+		RobotInfo[] allyDucks = rc.senseNearbyRobots(-1, myTeam);
+		FlagInfo[] flagsInfo = rc.senseNearbyFlags(-1, oppTeam);
 
-		Roles: {
-			// Determine roles
-			RobotInfo[] enemyDucksVision = rc.senseNearbyRobots(-1, oppTeam);
-			RobotInfo[] enemyDucksAttack = rc.senseNearbyRobots(GameConstants.ATTACK_RADIUS_SQUARED, oppTeam);
-			RobotInfo[] allyDucks = rc.senseNearbyRobots(-1, myTeam);
-			FlagInfo[] flagsInfo = rc.senseNearbyFlags(-1, oppTeam);
-
-			// Found a flag! First priority is to pick up and carry back
-			for (FlagInfo flag : flagsInfo) {
-				if (rc.canPickupFlag(flag.getLocation())) {
-					rc.pickupFlag(flag.getLocation());
-					pathfinding.setDestination(spawn);
-				}
+		// Found a flag! First priority is to pick up and carry back
+		for (FlagInfo flag : flagsInfo) {
+			if (rc.canPickupFlag(flag.getLocation())) {
+				rc.pickupFlag(flag.getLocation());
+				pathfinding.setDestination(spawn);
 			}
+		}
 
-			// Heal when beside allies and no enemies
-			if (allyDucks.length > 0 && enemyDucksVision.length == 0) {
-				RobotInfo leastHealthDuck = allyDucks[0];
-				for (RobotInfo allyDuck : allyDucks) {
-					if ((allyDuck.health < leastHealthDuck.health) && rc.canHeal(leastHealthDuck.getLocation())) {
-						leastHealthDuck = allyDuck;
-					}
-				}
-				if(rc.canHeal(leastHealthDuck.getLocation())) rc.heal(leastHealthDuck.getLocation());
-			}
+		if(enemyDucksAttack.length > 0 && turnCount >= 200) {
+			// Enemies present, takes priority over anything else
 
-			// Attack when in range of enemies
-			if(enemyDucksAttack.length > 0) {
+			Attack: {
 				// TODO: no random
 				RobotInfo enemy = enemyDucksAttack[rng.nextInt(enemyDucksAttack.length)];
-				if(rc.canAttack(enemy.getLocation())) rc.attack(enemy.getLocation());
+				if (rc.canAttack(enemy.getLocation())) rc.attack(enemy.getLocation());
 
-				if(!rc.hasFlag()) {
+				if (!rc.hasFlag()) {
 					// If not with allies, attack and back off
 					// TODO: try to back off only from their attack range, not all of vision range
-					if(allyDucks.length < 2) pathfinding.moveOnce(rc.getLocation().directionTo(enemy.getLocation()).opposite());
-
-					// If with allies, attack and move towards
-					// TODO: make more macro-y. (Units should still move away when they're done attacking)
-					else pathfinding.moveOnce(rc.getLocation().directionTo(enemy.getLocation()));
+					pathfinding.moveOnce(rc.getLocation().directionTo(enemy.getLocation()).opposite());
 				}
 			}
 
-			// Crumb collection, last priority
-			MapLocation[] crumbs = rc.senseNearbyCrumbs(-1);
-			if(enemyDucksVision.length == 0 && crumbs.length > 0) {
-				MapLocation bestCrumb = crumbs[0];
-				for(MapLocation crumb : crumbs) {
-					if(currLoc.distanceSquaredTo(crumb) < currLoc.distanceSquaredTo(bestCrumb)) {
-						bestCrumb = crumb;
-					}
+
+		} else {
+			// No enemies in attack range
+			if(pathfinding.getDestination() == null) {
+				MapLocation[] flags = rc.senseBroadcastFlagLocations();
+				if(flags.length != 0) {
+					MapLocation closestFlag = flags[0];
+					if(flags.length > 1 && currLoc.distanceSquaredTo(flags[1]) < currLoc.distanceSquaredTo(closestFlag))
+						closestFlag = flags[1];
+					if(flags.length > 2 && currLoc.distanceSquaredTo(flags[2]) < currLoc.distanceSquaredTo(closestFlag))
+						closestFlag = flags[2];
+
+					pathfinding.setDestination(closestFlag);
 				}
-				pathfinding.moveOnce(currLoc.directionTo(bestCrumb));
+			}
+
+			// ...but enemies in vision range
+			if(enemyDucksVision.length > 0 && turnCount >= 200 && !rc.hasFlag()) {
+				RobotInfo enemy = enemyDucksVision[rng.nextInt(enemyDucksVision.length)];
+				if(allyDucks.length > 0) {
+					pathfinding.moveOnce(currLoc.directionTo(enemy.location));
+				} else {
+					pathfinding.moveOnce(currLoc.directionTo(enemy.location).opposite());
+				}
+
+			} else {
+				// No enemies whatsoever
+
+				// Heal when beside allies and no enemies
+				if (allyDucks.length > 0) {
+					RobotInfo leastHealthDuck = allyDucks[0];
+					for (RobotInfo allyDuck : allyDucks) {
+						if ((allyDuck.hasFlag && allyDuck.health < GameConstants.DEFAULT_HEALTH) || (!leastHealthDuck.hasFlag && (allyDuck.health < leastHealthDuck.health) && rc.canHeal(leastHealthDuck.getLocation()))) {
+							leastHealthDuck = allyDuck;
+						}
+					}
+					if (rc.canHeal(leastHealthDuck.getLocation())) rc.heal(leastHealthDuck.getLocation());
+				}
+
+				// Crumb collection
+				MapLocation[] crumbs = rc.senseNearbyCrumbs(-1);
+				if (crumbs.length > 0) {
+					MapLocation bestCrumb = null;
+					for (MapLocation crumb : crumbs) {
+						if ((bestCrumb == null || currLoc.distanceSquaredTo(crumb) < currLoc.distanceSquaredTo(bestCrumb)) && rc.sensePassability(crumb)) {
+							bestCrumb = crumb;
+						}
+					}
+					if(bestCrumb != null && !rc.hasFlag()) pathfinding.moveOnce(currLoc.directionTo(bestCrumb));
+				}
 			}
 		}
 
 		pathfinding.step();
+		AttackSecondPass: {
+			enemyDucksAttack = rc.senseNearbyRobots(GameConstants.ATTACK_RADIUS_SQUARED, oppTeam);
+			if(enemyDucksAttack.length > 0) {
+				RobotInfo enemy = enemyDucksAttack[rng.nextInt(enemyDucksAttack.length)];
+				if (rc.canAttack(enemy.getLocation())) rc.attack(enemy.getLocation());
+			}
+		}
+
 	}
 
 	// ---------------------------------------------- HELPERS  ------------------------------------------------

@@ -44,7 +44,6 @@ public class BugPathfinding extends Pathfinding {
             Direction bestMove = getBestDirection(destination);
             rc.setIndicatorString("Bugnav move: " + bestMove);
             if(bestMove != null && rc.canMove(bestMove)) {
-                rc.setIndicatorDot(rc.adjacentLocation(bestMove), 20, 255, 20); // test
                 rc.move(bestMove);
             } else if (bestMove != null) {
                 Direction newBestMove = GreedyPathfinding.bestGreedyMove(rc, destination);
@@ -67,7 +66,6 @@ public class BugPathfinding extends Pathfinding {
 
         if(destination.equals(currLoc)) {
             resetDestination();
-            rc.setIndicatorDot(rc.adjacentLocation(currDir), 255, 255, 255); // test
             return null;
         };
 
@@ -77,7 +75,6 @@ public class BugPathfinding extends Pathfinding {
         } else {
             if (currDir == null) {
                 currDir = targetDir;
-                rc.setIndicatorDot(currLoc, 255, 20, 20); // test
                 rc.setIndicatorString("Blocked D: currDir is " + currDir);
                 goalSide = !isLeft(startLoc, destination, currLoc);
             } else {
@@ -86,18 +83,15 @@ public class BugPathfinding extends Pathfinding {
 
             if (goalSide == isLeft(startLoc, destination, currLoc)) {
                 currDir = null;
-                rc.setIndicatorDot(currLoc, 100, 100, 100); // test
                 return null;
             }
 
             for (int i = 0; i < 8; i++) {
                 MapLocation followWallLocation = rc.adjacentLocation(currDir);
-                rc.setIndicatorLine(currLoc, rc.adjacentLocation(currDir), 20, 20, 255); // test
 
                 if (passStrat.canPass(followWallLocation)) {
                     Direction bestDir = currDir;
                     if(rc.canMove(currDir)) currDir = currLoc.add(currDir).directionTo(currLoc.add(currDir.rotateRight()));
-                    rc.setIndicatorDot(rc.adjacentLocation(currDir), 255, 20, 20); // test
                     return bestDir;
                 } else {
                     currDir = currDir.rotateLeft();
@@ -105,7 +99,6 @@ public class BugPathfinding extends Pathfinding {
             }
         }
 
-        rc.setIndicatorDot(currLoc, 0, 0, 0); // test
         return null;
     }
 
