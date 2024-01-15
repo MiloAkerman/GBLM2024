@@ -34,9 +34,12 @@ public class Duck extends RobotPlayer {
 		// We haven't spawned yet, attempt to spawn
 		if (!rc.isSpawned()){ if(!trySpawn()) return; }
 
+		MapLocation currLoc = rc.getLocation();
+
 		Roles: {
 			// Determine roles
-			RobotInfo[] enemyDucks = rc.senseNearbyRobots(-1, oppTeam);
+			RobotInfo[] enemyDucksVision = rc.senseNearbyRobots(-1, oppTeam);
+			RobotInfo[] enemyDucksAttack = rc.senseNearbyRobots(GameConstants.ATTACK_RADIUS_SQUARED, oppTeam);
 			RobotInfo[] allyDucks = rc.senseNearbyRobots(-1, myTeam);
 			FlagInfo[] flagsInfo = rc.senseNearbyFlags(-1, oppTeam);
 
@@ -47,22 +50,22 @@ public class Duck extends RobotPlayer {
 					pathfinding.setDestination(spawn);
 				}
 			}
+
 			// Heal when beside allies and no enemies
-			if (allyDucks.length > 0 && enemyDucks.length == 0) {
+			if (allyDucks.length > 0 && enemyDucksVision.length == 0) {
 				RobotInfo leastHealthDuck = allyDucks[0];
 				for (RobotInfo allyDuck : allyDucks) {
-					if ((allyDuck.health < 350) && (allyDuck.health < leastHealthDuck.health)) {
+					if ((allyDuck.health < leastHealthDuck.health) && rc.canHeal(leastHealthDuck.getLocation())) {
 						leastHealthDuck = allyDuck;
 					}
 				}
-				if (rc.canHeal(leastHealthDuck.getLocation())) {
-					rc.heal(leastHealthDuck.getLocation());
-				}
+				if(rc.canHeal(leastHealthDuck.getLocation())) rc.heal(leastHealthDuck.getLocation());
 			}
 
 			// Attack when in range of enemies
-			if(enemyDucks.length > 0) {
-				RobotInfo enemy = enemyDucks[rng.nextInt(enemyDucks.length)];
+			if(enemyDucksAttack.length > 0) {
+				// TODO: no random
+				RobotInfo enemy = enemyDucksAttack[rng.nextInt(enemyDucksAttack.length)];
 				if(rc.canAttack(enemy.getLocation())) rc.attack(enemy.getLocation());
 
 				if(!rc.hasFlag()) {
@@ -74,6 +77,18 @@ public class Duck extends RobotPlayer {
 					// TODO: make more macro-y. (Units should still move away when they're done attacking)
 					else pathfinding.moveOnce(rc.getLocation().directionTo(enemy.getLocation()));
 				}
+			}
+
+			// Crumb collection, last priority
+			MapLocation[] crumbs = rc.senseNearbyCrumbs(-1);
+			if(enemyDucksVision.length == 0 && crumbs.length > 0) {
+				MapLocation bestCrumb = crumbs[0];
+				for(MapLocation crumb : crumbs) {
+					if(currLoc.distanceSquaredTo(crumb) < currLoc.distanceSquaredTo(bestCrumb)) {
+						bestCrumb = crumb;
+					}
+				}
+				pathfinding.moveOnce(currLoc.directionTo(bestCrumb));
 			}
 		}
 
