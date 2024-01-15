@@ -3,7 +3,7 @@ import battlecode.common.*;
 
 public class Constants {
 	public static final PassabilityType DEFAULT_PASSABILITY = PassabilityType.DAMSOKAY;
-	public static final int MAX_SPAWN_TRAPS = 4;
+	public static final int MIN_ENEMIES_FOR_EXPL = 3;
 	public static final Direction[] DIRECTIONS = { Direction.NORTH, Direction.NORTHEAST, Direction.EAST,
 			Direction.SOUTHEAST, Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST,
 			Direction.NORTHWEST };

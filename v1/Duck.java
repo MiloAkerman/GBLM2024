@@ -51,8 +51,8 @@ public class Duck extends RobotPlayer {
 			// Enemies present, takes priority over anything else
 
 
-			MapLocation bestTrap = spawnTrap(TrapType.EXPLOSIVE);
-			if(bestTrap != null) rc.build(TrapType.EXPLOSIVE, bestTrap);
+			if(enemyDucksAttack.length >= MIN_ENEMIES_FOR_EXPL && rc.canBuild(TrapType.EXPLOSIVE, enemyDucksAttack[0].location))
+				rc.build(TrapType.EXPLOSIVE, enemyDucksAttack[0].location);
 
 			Attack: {
 				// TODO: no random
@@ -68,6 +68,20 @@ public class Duck extends RobotPlayer {
 
 		} else {
 			// No enemies in attack range
+
+			FlagCheck: if(teamFlagsInfo.length > 0) {
+				for(FlagInfo flag : teamFlagsInfo) {
+					if(flag.getLocation().equals(currLoc)) {
+						pathfinding.doNotMove = true; //TODO: Setter
+					}
+				}
+
+				FlagInfo randomFlag = teamFlagsInfo[rng.nextInt(teamFlagsInfo.length)];
+				if(rc.canSenseLocation(randomFlag.getLocation()) && rc.senseRobotAtLocation(randomFlag.getLocation()) == null) {
+					pathfinding.moveOnce(currLoc.directionTo(randomFlag.getLocation()));
+				}
+			}
+
 			if(pathfinding.getDestination() == null) {
 				MapLocation[] flags = rc.senseBroadcastFlagLocations();
 				if(flags.length != 0) {
@@ -83,9 +97,6 @@ public class Duck extends RobotPlayer {
 
 			// ...but enemies in vision range
 			if(enemyDucksVision.length > 0 && turnCount >= 200 && !rc.hasFlag()) {
-
-				MapLocation bestTrap = spawnTrap(TrapType.EXPLOSIVE);
-				if(bestTrap != null) rc.build(TrapType.EXPLOSIVE, bestTrap);
 
 				RobotInfo enemy = enemyDucksVision[rng.nextInt(enemyDucksVision.length)];
 				if(allyDucksHeal.length > 0) {
@@ -163,23 +174,6 @@ public class Duck extends RobotPlayer {
 			}
 			if (rc.canHeal(leastHealthDuck.getLocation())) return leastHealthDuck;
 			else return null;
-		} else {
-			return null;
-		}
-	}
-
-	public static MapLocation spawnTrap(TrapType type) throws GameActionException {
-		int traps = 0;
-		ArrayList<MapLocation> placeableLocations = new ArrayList<>();
-
-		for(MapLocation spawn : rc.getAllySpawnLocations()) {
-			if(rc.canSenseLocation(spawn) && rc.senseMapInfo(spawn).getTrapType() != TrapType.NONE) {
-				traps++;
-				if(rc.canBuild(type, spawn)) placeableLocations.add(spawn);
-			}
-		}
-		if(traps <= MAX_SPAWN_TRAPS && !placeableLocations.isEmpty()) {
-			return placeableLocations.get(0);
 		} else {
 			return null;
 		}

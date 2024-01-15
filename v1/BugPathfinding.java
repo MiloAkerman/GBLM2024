@@ -36,6 +36,10 @@ public class BugPathfinding extends Pathfinding {
     // ------------------------------------------------- ACTION ----------------------------------------------------
     @Override
     public void step() throws GameActionException {
+        if(doNotMove) {
+            doNotMove = false;
+            return;
+        }
         if(!rc.isSpawned()) return;         // We do not exist
         if(!rc.isMovementReady()) return;   // Already moved
 

@@ -11,6 +11,7 @@ import battlecode.common.*;
 public abstract class Pathfinding  {
     RobotController rc;
     PassabilityStrategy passStrat;
+    boolean doNotMove = false;
 
     Pathfinding(RobotController rc) {
         this.rc = rc;
