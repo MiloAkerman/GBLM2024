@@ -28,6 +28,7 @@ public strictfp class RobotPlayer {
         mapWidth = rc.getMapWidth();
         mapHeight = rc.getMapHeight();
         turnCount = rc.getRoundNum();
+        rng = new Random(rc.getID());
 
         // Duck setup
         try {
