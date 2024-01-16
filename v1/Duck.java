@@ -53,15 +53,22 @@ public class Duck extends RobotPlayer {
 
 			if(enemyDucksAttack.length >= MIN_ENEMIES_FOR_EXPL && rc.canBuild(TrapType.EXPLOSIVE, enemyDucksAttack[0].location))
 				rc.build(TrapType.EXPLOSIVE, enemyDucksAttack[0].location);
-
 			Attack: {
 				// TODO: no random
-				RobotInfo enemy = enemyDucksAttack[rng.nextInt(enemyDucksAttack.length)];
-				if (rc.canAttack(enemy.getLocation())) rc.attack(enemy.getLocation());
+				// prioritize weakest enemy duck that within attack radius
+				// improvement, use comms to gang up within mutual attack radius on a duck 1 by 1, weakest first
+				RobotInfo weakest = enemyDucksAttack[0];
+				for (RobotInfo enemy : enemyDucksAttack) {
+					if (enemy.health < weakest.health && rc.canAttack(enemy.getLocation())) {
+						weakest = enemy;
+					}
+				}
+
+				if (rc.canAttack(weakest.getLocation())) rc.attack(weakest.getLocation());
 
 				if (!rc.hasFlag()) {
 					// Back off after attacking
-					pathfinding.moveOnce(rc.getLocation().directionTo(enemy.getLocation()).opposite());
+					pathfinding.moveOnce(rc.getLocation().directionTo(weakest.getLocation()).opposite());
 				}
 			}
 
