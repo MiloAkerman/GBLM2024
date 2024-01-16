@@ -38,6 +38,13 @@ public class Duck extends RobotPlayer {
 		RobotInfo[] allyDucksHeal = rc.senseNearbyRobots(GameConstants.HEAL_RADIUS_SQUARED, myTeam);
 		FlagInfo[] enemyFlagsInfo = rc.senseNearbyFlags(-1, oppTeam);
 		FlagInfo[] teamFlagsInfo = rc.senseNearbyFlags(-1, myTeam);
+		ArrayList<MapLocation> spawnTrapsLocations = getSpawnTrapLocation();
+
+		// build traps at spawn
+		for (MapLocation spawnTrapLocation : spawnTrapsLocations) {
+			if (rc.canBuild(TrapType.EXPLOSIVE, spawnTrapLocation)) rc.build(TrapType.EXPLOSIVE, spawnTrapLocation);
+		}
+
 
 		// Found a flag! First priority is to pick up and carry back
 		for (FlagInfo flag : enemyFlagsInfo) {
@@ -50,10 +57,11 @@ public class Duck extends RobotPlayer {
 		if(enemyDucksAttack.length > 0 && turnCount >= 200) {
 			// Enemies present, takes priority over anything else
 
+
 			if(enemyDucksAttack.length >= MIN_ENEMIES_FOR_EXPL && rc.canBuild(TrapType.EXPLOSIVE, enemyDucksAttack[0].location))
 				rc.build(TrapType.EXPLOSIVE, enemyDucksAttack[0].location);
-
 			Attack: {
+				// TODO: no random
 				// prioritize weakest enemy duck that within attack radius
 				// improvement, use comms to gang up within mutual attack radius on a duck 1 by 1, weakest first
 				RobotInfo weakest = enemyDucksAttack[0];
@@ -140,6 +148,26 @@ public class Duck extends RobotPlayer {
 	}
 
 	// ---------------------------------------------- HELPERS  ------------------------------------------------
+	public static ArrayList<MapLocation> getSpawnTrapLocation() {
+		MapLocation[] spawnLocations = rc.getAllySpawnLocations();
+		ArrayList<MapLocation> spawnTrapsLocations = new ArrayList<MapLocation>();
+
+		for (MapLocation spawnLocation : spawnLocations) {
+
+			spawnTrapsLocations.add(new MapLocation(spawnLocation.x-1, spawnLocation.y));
+			spawnTrapsLocations.add(new MapLocation(spawnLocation.x+1, spawnLocation.y));
+			spawnTrapsLocations.add(new MapLocation(spawnLocation.x-1, spawnLocation.y-1));
+			spawnTrapsLocations.add(new MapLocation(spawnLocation.x, spawnLocation.y-1));
+			spawnTrapsLocations.add(new MapLocation(spawnLocation.x+1, spawnLocation.y-1));
+			spawnTrapsLocations.add(new MapLocation(spawnLocation.x-1, spawnLocation.y+1));
+			spawnTrapsLocations.add(new MapLocation(spawnLocation.x, spawnLocation.y+1));
+			spawnTrapsLocations.add(new MapLocation(spawnLocation.x+1, spawnLocation.y+1));
+
+		}
+
+		return spawnTrapsLocations;
+	}
+
 	public static boolean trySpawn() throws GameActionException {
 		MapLocation[] spawnLocations = rc.getAllySpawnLocations();
 
