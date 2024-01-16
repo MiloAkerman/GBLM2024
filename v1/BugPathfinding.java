@@ -46,7 +46,7 @@ public class BugPathfinding extends Pathfinding {
         // We have somewhere to go and we exist
         if(destination != null) {
             Direction bestMove = getBestDirection(destination);
-            rc.setIndicatorString("Bugnav move: " + bestMove);
+//            rc.setIndicatorString("Bugnav move: " + bestMove);
             if(bestMove != null && rc.canMove(bestMove)) {
                 rc.move(bestMove);
             } else if (bestMove != null) {
@@ -57,7 +57,7 @@ public class BugPathfinding extends Pathfinding {
                 }
             }
         } else {
-            rc.setIndicatorString("No destination!!");
+//            rc.setIndicatorString("No destination!!");
         }
     }
 
@@ -74,15 +74,15 @@ public class BugPathfinding extends Pathfinding {
         };
 
         if (currDir == null && passStrat.canPass(adjacentLoc)) {
-            rc.setIndicatorString("Can move to my favorite!! :3 " + targetDir);
+//            rc.setIndicatorString("Can move to my favorite!! :3 " + targetDir);
             return targetDir;
         } else {
             if (currDir == null) {
                 currDir = targetDir;
-                rc.setIndicatorString("Blocked D: currDir is " + currDir);
+//                rc.setIndicatorString("Blocked D: currDir is " + currDir);
                 goalSide = !isLeft(startLoc, destination, currLoc);
             } else {
-                rc.setIndicatorString("We keep chugging on...");
+//                rc.setIndicatorString("We keep chugging on...");
             }
 
             if (goalSide == isLeft(startLoc, destination, currLoc)) {

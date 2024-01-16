@@ -50,10 +50,6 @@ public class Duck extends RobotPlayer {
 		if(enemyDucksAttack.length > 0 && turnCount >= 200) {
 			// Enemies present, takes priority over anything else
 
-
-			if(enemyDucksAttack.length >= MIN_ENEMIES_FOR_EXPL && rc.canBuild(TrapType.EXPLOSIVE, enemyDucksAttack[0].location))
-				rc.build(TrapType.EXPLOSIVE, enemyDucksAttack[0].location);
-
 			Attack: {
 				// TODO: no random
 				RobotInfo enemy = enemyDucksAttack[rng.nextInt(enemyDucksAttack.length)];
