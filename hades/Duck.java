@@ -1,6 +1,6 @@
-package v1;
+package hades;
 import battlecode.common.*;
-import static v1.Constants.*;
+import static hades.Constants.*;
 import java.util.*;
 
 /**

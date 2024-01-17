@@ -1,0 +1,51 @@
+Pathfinding: Bug 2 > Greedy fallback
+Comms:
+  [
+    ints 1-3: SPAWN COORDINATION
+    ints 4-?: UNIT ROLE ASSIGNMENT
+  ]
+
+Generally:
+- Ducks approach and pick-up flags at spawn to assign themselves as flag-bearers UNLESS it is setup and
+    the flag is in the centermost spawn
+- On turn one, first bot creates a list of all spawns and writes it to ints 1-3.
+- On turn one, first bot assigns himself a Better ID and all bots assign themselves the next on their turn
+
+Duck roles:
+[3 MAX] FLAG BEARER (Self-assign if carrying flag):
+    - DURING SETUP:
+        - Take flag to center-most spawn
+        - Drop, wait for setup to end.
+        - TODO: What if flag-bearer cannot reach mid spawn?
+    - AFTER SETUP:
+        - Take flag, head to map edge, and move back and forth
+        - Hide from enemies in vision range
+
+[~30%] FLAG DEFENDER (Assign by comms IF (IN RANGE OF FLAG-BEARER once flag-bearer puts up bit-call) OR (CLOSEST TO FLAG-BEARER and is BASE DEFENDER once dead defender puts up bit-call):
+    - Follow flag-bearer
+    - Attack if in range of enemies, prioritize closest to flag-bearer
+    - CHASE ENEMY FLAG-BEARERS
+    - When dead, put up bit-call for another flag defender
+
+[~60%] BASE DEFENDER (Default role)
+    - All stick around mid spawn
+    - Spread out if flag-bearer passing through
+    - Attack, build, and heal. Prioritize enemies carrying flag or closest to spawn
+    - Restrict to some max distance from mid spawn. (Enough to move, not too much as to leave spawn undefended)
+    - Spam traps and moats. Attack if can't build. Heal whenever not attacking.
+
+=====================================================================================================
+
+comms would look like:
+int 1: [12 bits spawn 1] [4 bits spawn 2]
+int 2: [8 bits spawn 2] [8 bits spawn 3]
+int 3: [4 bits spawn 3] [12 bits free?]
+
+int 4: Numbers 1-50 for Better ID assignment
+
+int 5: [12 bits for flag bearer 1, empty if no flag bearer]
+int 6: [x < 16 bits for flag defenders to assign themselves to]
+int 7: [12 bits for flag bearer 2, empty if no flag bearer]
+int 8: [x < 16 bits for flag defenders to assign themselves to]
+int 9: [12 bits for flag bearer 2, empty if no flag bearer]
+int 10: [x < 16 bits for flag defenders to assign themselves to]

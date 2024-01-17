@@ -1,6 +1,6 @@
-package v1;
+package hades;
 import battlecode.common.*;
-import v1.Constants.*;
+import hades.Constants.*;
 
 public class Setup extends Duck {
     public static void run(RobotController rc) throws GameActionException {
